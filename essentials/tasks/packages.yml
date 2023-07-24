@@ -1,0 +1,26 @@
+- name: install essential packages
+  ansible.builtin.package:
+    name:
+      - git
+      - iotop
+      - vim
+      - nload
+      - smartmontools
+      - sysstat
+      - qemu-guest-agent
+    state: present
+  become: true
+
+- name: start and enable sysstat
+  ansible.builtin.systemd:
+    name: sysstat
+    state: started
+    enabled: true
+  become: true
+
+- name: start and enable qemu-guest-agent
+  ansible.builtin.systemd:
+    name: qemu-guest-agent
+    state: started
+    enabled: true
+  become: true
