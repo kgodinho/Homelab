@@ -1,3 +1,9 @@
+- name: update apt cache if debian
+  ansible.builtin.apt:
+    update_cache: yes
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
 - name: install essential packages
   ansible.builtin.package:
     name:
@@ -8,6 +14,7 @@
       - smartmontools
       - sysstat
       - qemu-guest-agent
+      - pip
     state: present
   become: true
 

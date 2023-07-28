@@ -1,0 +1,93 @@
+- name: install required packages for netbox
+  ansible.builtin.package:
+    name:
+      - python3
+      - python3-pip
+      - python3-venv
+      - python3-dev
+      - build-essential
+      - libxml2-dev
+      - libxslt1-dev
+      - libffi-dev
+      - libpq-dev
+      - libssl-dev
+      - zlib1g-dev
+    state: present
+  become: true
+
+- name: create netbox directory
+  ansible.builtin.file:
+    path: /opt/netbox
+    state: directory
+  become: true
+
+- name: clone netbox git repo latest stable
+  ansible.builtin.git:
+    repo: https://github.com/netbox-community/netbox.git
+    dest: /opt/netbox
+    depth: 1
+    version: master
+  become: true
+
+- name: create netbox group
+  ansible.builtin.group:
+    name: netbox
+    state: present
+  become: true
+
+- name: create netbox system user
+  ansible.builtin.user:
+    name: netbox
+    group: netbox
+    system: true
+  become: true
+
+- name: assign netbox user ownership of media directory
+  ansible.builtin.file:
+    path: /opt/netbox/netbox/media/
+    state: directory
+    recurse: yes
+    owner: netbox
+    group: netbox
+  become: true
+
+- name: assign netbox user ownership of reports directory
+  ansible.builtin.file:
+    path: /opt/netbox/netbox/reports/
+    state: directory
+    recurse: yes
+    owner: netbox
+    group: netbox
+  become: true
+
+- name: assign netbox user ownership of scripts directory
+  ansible.builtin.file:
+    path: /opt/netbox/netbox/scripts/
+    state: directory
+    recurse: yes
+    owner: netbox
+    group: netbox
+  become: true
+
+- name: copy example config python file
+  ansible.builtin.copy:
+    src: /opt/netbox/netbox/netbox/configuration_example.py
+    dest: /opt/netbox/netbox/netbox/configuration.py
+    remote_src: true
+  become: true
+
+- name: set config Allowed Hosts
+  ansible.builtin.lineinfile:
+    path: /opt/netbox/netbox/netbox/configuration.py
+    search_string: 'ALLOWED_HOSTS = []'
+    line: ALLOWED_HOSTS = ['netbox.kylegodinho.com', '{{ansible_default_ipv4.address}}']
+    state: present
+  become: true
+
+- name: set config postgres username
+  ansible.builtin.lineinfile:
+    path: /opt/netbox/netbox/netbox/configuration.py
+    search_string: 'PostgreSQL username'
+    line: "    'USER': 'netbox',"
+    state: present
+  become: true
