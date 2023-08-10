@@ -26,6 +26,24 @@
     state: present
   become: true
 
+# set up cert/key in /etc/nginx/sites-available/netbox
+
+- name: set cert in conf
+  ansible.builtin.lineinfile:
+    path: /etc/nginx/sites-available/netbox
+    search_string: 'netbox.crt'
+    line: "    ssl_certificate /etc/letsencrypt/live/netbox.kylegodinho.com/fullchain.pem;"
+    state: present
+  become: true
+
+- name: set key in conf
+  ansible.builtin.lineinfile:
+    path: /etc/nginx/sites-available/netbox
+    search_string: 'netbox.key'
+    line: "    ssl_certificate_key /etc/letsencrypt/live/netbox.kylegodinho.com/privkey.pem;"
+    state: present
+  become: true
+
 - name: remove default nginx site
   ansible.builtin.file:
     path: /etc/nginx/sites-enabled/default
@@ -38,8 +56,6 @@
     dest: /etc/nginx/sites-enabled/netbox
     state: link
   become: true
-
-# set up cert/key in /etc/nginx/sites-available/netbox
 
 - name: restart nginx
   ansible.builtin.systemd:
