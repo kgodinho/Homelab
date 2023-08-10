@@ -1,0 +1,43 @@
+- name: copy default config python file
+  ansible.builtin.copy:
+    src: /opt/netbox/contrib/gunicorn.py
+    dest: /opt/netbox/gunicorn.py
+    remote_src: true
+  become: true
+
+- name: change workers to 2n+1 cpu cores as suggested
+  ansible.builtin.lineinfile:
+    path: /opt/netbox/gunicorn.py
+    search_string: 'workers'
+    line: "workers = {{ansible_processor_cores|int * 2 + 1}}"
+    state: present
+  become: true
+
+- name: copy netbox service file
+  ansible.builtin.copy:
+    src: /opt/netbox/contrib/netbox.service
+    dest: /etc/systemd/system/netbox.service
+    remote_src: true
+  become: true
+
+- name: copy netbox-rq service file
+  ansible.builtin.copy:
+    src: /opt/netbox/contrib/netbox-rq.service
+    dest: /etc/systemd/system/netbox-rq.service
+    remote_src: true
+  become: true
+
+- name: reload systemd start and enable netbox
+  ansible.builtin.systemd:
+    name: netbox
+    state: started
+    enabled: true
+    daemon_reload: true
+  become: true
+
+- name: start and enable netbox-rq
+  ansible.builtin.systemd:
+    name: netbox-rq
+    state: started
+    enabled: true
+  become: true
