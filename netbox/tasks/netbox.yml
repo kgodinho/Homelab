@@ -91,3 +91,60 @@
     line: "    'USER': 'netbox',"
     state: present
   become: true
+
+#lookup for just the password returns a list of 1 item (the password)
+- name: set config postgres password
+  ansible.builtin.lineinfile:
+    path: /opt/netbox/netbox/netbox/configuration.py
+    search_string: 'PostgreSQL password'
+    line: "    'PASSWORD': '{{ lookup('community.general.bitwarden', 'NetboxDBPassword', field='password')[0]}}',"
+    state: present
+  become: true
+
+- name: generate secret key
+  ansible.builtin.command:
+    chdir: /opt/netbox/netbox
+    cmd: python3 generate_secret_key.py
+  become: true
+  register: secret_key
+
+- name: set config secret key
+  ansible.builtin.lineinfile:
+    path: /opt/netbox/netbox/netbox/configuration.py
+    search_string: 'SECRET_KEY'
+    line: "SECRET_KEY = '{{secret_key.stdout}}'"
+    state: present
+  become: true
+
+- name: run upgrade script
+  ansible.builtin.command:
+    chdir: /opt/netbox
+    cmd: bash upgrade.sh
+  become: true
+
+- name: install pexpect in venv to use to create superuser
+  ansible.builtin.pip:
+    name:
+      - pexpect
+  environment:
+    PATH: '/opt/netbox/venv/bin:{{ ansible_env.PATH }}'
+  become: true
+
+- name: set netbox super user
+  ansible.builtin.expect:
+    command: python3 /opt/netbox/netbox/manage.py createsuperuser
+    responses:
+      (?i)Username: "{{ lookup('community.general.bitwarden', 'netboxSuperUser', field='username')[0]}}"
+      (?i)Email: "{{ lookup('community.general.bitwarden', 'netboxSuperUser', field='email')[0]}}"
+      (?i)Password: "{{ lookup('community.general.bitwarden', 'netboxSuperUser', field='password')[0]}}"
+  environment:
+    PATH: '/opt/netbox/venv/bin:{{ ansible_env.PATH }}'
+  become: true
+
+- name: link housekeeping task
+  ansible.builtin.file:
+    src: /opt/netbox/contrib/netbox-housekeeping.sh
+    dest: /etc/cron.daily/netbox-housekeeping
+    state: link
+  become: true
+
