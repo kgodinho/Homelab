@@ -1,0 +1,72 @@
+- name: install snap
+  ansible.builtin.package:
+    name:
+      - snapd
+    state: present
+  become: true
+
+- name: snap is started and enabled
+  ansible.builtin.systemd:
+    name: snapd.socket
+    state: started
+    enabled: true
+  become: true
+
+- name: install certbot plugin
+  community.general.snap:
+    name:
+      - certbot
+    classic: true
+  become: true
+
+- name: symlink certbot 
+  file:
+    src: /snap/bin/certbot
+    dest: /usr/bin/certbot
+    state: link
+  become: true
+
+- name: plugin containment level set
+  community.general.snap:
+    name:
+      - certbot
+    options:
+      - trust-plugin-with-root=ok
+  become: true
+
+- name: install cloudflare plugin
+  community.general.snap:
+    name:
+      - certbot-dns-cloudflare
+  become: true
+
+- name: make directory for cloudflare.ini
+  ansible.builtin.file:
+    path: /home/{{ansible_user_id}}/.secrets/certbot
+    state: directory
+
+- name: create cloudflare.ini
+  ansible.builtin.lineinfile:
+    path: /home/{{ansible_user_id}}/.secrets/certbot/cloudflare.ini
+    line: "dns_cloudflare_api_token = {{lookup('community.general.bitwarden', 'CloudflareAPI', field='token')[0]}}"
+    create: true
+
+- name: ensure good perms on cloudfare.ini
+  ansible.builtin.file:
+    path: //home/{{ansible_user_id}}/.secrets/certbot/cloudflare.ini
+    mode: '600'
+
+- name: check if a cert already exists
+  ansible.builtin.stat:
+    path: /etc/letsencrypt/live/{{ansible_hostname}}.kylegodinho.com/fullchain.pem
+  register: pem_exists
+  become: true
+
+- name: run certbot command
+  ansible.builtin.expect:
+    command: certbot certonly --dns-cloudflare --dns-cloudflare-credentials /home/{{ansible_user_id}}/.secrets/certbot/cloudflare.ini --dns-cloudflare-propagation-seconds 60 -d {{ansible_hostname}}.kylegodinho.com
+    responses:
+      (?i)cancel: "{{lookup('community.general.bitwarden', 'CloudflareAPI', field='username')[0]}}"
+      (?i)es: "Y"
+  become: true
+  when: not pem_exists.stat.exists

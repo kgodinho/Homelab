@@ -140,6 +140,7 @@
   environment:
     PATH: '/opt/netbox/venv/bin:{{ ansible_env.PATH }}'
   become: true
+  no_log: true
 
 - name: link housekeeping task
   ansible.builtin.file:
