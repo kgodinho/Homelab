@@ -1,8 +1,8 @@
 # rename cert and key to /etc/ssl/certs/netbox.crt and /etc/ssl/private/netbox.key
 # or just change conf file to point to correct certs
 
-#Certificate is saved at: /etc/letsencrypt/live/netbox.kylegodinho.com/fullchain.pem
-#Key is saved at:         /etc/letsencrypt/live/netbox.kylegodinho.com/privkey.pem
+#Certificate is saved at: /etc/letsencrypt/live/{{ansible_hostname}}.kylegodinho.com/fullchain.pem
+#Key is saved at:         /etc/letsencrypt/live/{{ansible_hostname}}.kylegodinho.com/privkey.pem
 
 - name: install nginx
   ansible.builtin.package:
@@ -22,7 +22,7 @@
   ansible.builtin.lineinfile:
     path: /etc/nginx/sites-available/netbox
     search_string: 'netbox.example.com'
-    line: "    server_name netbox.kylegodinho.com;"
+    line: "    server_name {{ansible_hostname}}.kylegodinho.com;"
     state: present
   become: true
 
@@ -32,7 +32,7 @@
   ansible.builtin.lineinfile:
     path: /etc/nginx/sites-available/netbox
     search_string: 'netbox.crt'
-    line: "    ssl_certificate /etc/letsencrypt/live/netbox.kylegodinho.com/fullchain.pem;"
+    line: "    ssl_certificate /etc/letsencrypt/live/{{ansible_hostname}}.kylegodinho.com/fullchain.pem;"
     state: present
   become: true
 
@@ -40,7 +40,7 @@
   ansible.builtin.lineinfile:
     path: /etc/nginx/sites-available/netbox
     search_string: 'netbox.key'
-    line: "    ssl_certificate_key /etc/letsencrypt/live/netbox.kylegodinho.com/privkey.pem;"
+    line: "    ssl_certificate_key /etc/letsencrypt/live/{{ansible_hostname}}.kylegodinho.com/privkey.pem;"
     state: present
   become: true
 

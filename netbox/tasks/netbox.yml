@@ -80,7 +80,7 @@
   ansible.builtin.lineinfile:
     path: /opt/netbox/netbox/netbox/configuration.py
     search_string: 'ALLOWED_HOSTS = []'
-    line: ALLOWED_HOSTS = ['netbox.kylegodinho.com', '{{ansible_default_ipv4.address}}']
+    line: ALLOWED_HOSTS = ['{{ansible_hostname}}.kylegodinho.com', '{{ansible_default_ipv4.address}}']
     state: present
   become: true
 
