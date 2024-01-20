@@ -1,0 +1,69 @@
+#Certificate is saved at: /etc/letsencrypt/live/{{ansible_hostname}}.kylegodinho.com/fullchain.pem
+#Key is saved at:         /etc/letsencrypt/live/{{ansible_hostname}}.kylegodinho.com/privkey.pem
+
+- name: install nginx
+  ansible.builtin.package:
+    name:
+      - nginx
+    state: present
+  become: true
+
+- name: copy nginx config
+  ansible.builtin.copy:
+    src: base_nginx_conf
+    dest: /etc/nginx/sites-available/{{ansible_hostname}}
+  become: true
+
+- name: change server name in conf
+  ansible.builtin.lineinfile:
+    path: /etc/nginx/sites-available/{{ansible_hostname}}
+    search_string: 'SERVER_FQDN'
+    line: "    server_name {{ansible_hostname}}.kylegodinho.com;"
+    state: present
+  become: true
+
+# set up cert/key in /etc/nginx/sites-available/netbox
+
+- name: set cert in conf
+  ansible.builtin.lineinfile:
+    path: /etc/nginx/sites-available/{{ansible_hostname}}
+    search_string: 'SERVER_CERT'
+    line: "    ssl_certificate /etc/letsencrypt/live/{{ansible_hostname}}.kylegodinho.com/fullchain.pem;"
+    state: present
+  become: true
+
+- name: set key in conf
+  ansible.builtin.lineinfile:
+    path: /etc/nginx/sites-available/{{ansible_hostname}}
+    search_string: 'SERVER_KEY'
+    line: "    ssl_certificate_key /etc/letsencrypt/live/{{ansible_hostname}}.kylegodinho.com/privkey.pem;"
+    state: present
+  become: true
+
+- name: set port in conf
+  ansible.builtin.lineinfile:
+    path: /etc/nginx/sites-available/{{ansible_hostname}}
+    search_string: 'SERVER_PORT'
+    line: "        proxy_pass http://127.0.0.1:{{server_port}};"
+    state: present
+  become: true  
+
+- name: remove default nginx site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  become: true
+
+- name: link site conf to enabled sites
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/{{ansible_hostname}}
+    dest: /etc/nginx/sites-enabled/{{ansible_hostname}}
+    state: link
+  become: true
+
+- name: restart nginx
+  ansible.builtin.systemd:
+    name: nginx
+    state: restarted
+    enabled: true
+  become: true

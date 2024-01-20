@@ -11,4 +11,5 @@
 - hosts: graylog
   roles:
     - essentials
-    - certbot
+    # - certbot
+    - graylog
