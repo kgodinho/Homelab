@@ -1,0 +1,225 @@
+- name: Add opensearch key
+  ansible.builtin.apt_key:
+    url: https://artifacts.opensearch.org/publickeys/opensearch.pgp
+    state: present
+  become: true
+
+- name: Add opensearch repository
+  ansible.builtin.apt_repository:
+    repo: deb https://artifacts.opensearch.org/releases/bundle/opensearch/2.x/apt stable main
+    state: present
+    filename: opensearch-2.x
+  become: true
+
+- name: install opensearch
+  ansible.builtin.package:
+    name:
+      - opensearch
+    state: present
+  become: true
+
+- name: change cluster name in conf
+  ansible.builtin.lineinfile:
+    path: /etc/opensearch/opensearch.yml
+    search_string: 'cluster.name'
+    line: "cluster.name: {{ansible_hostname}}"
+    state: present
+  become: true
+
+- name: change node name in conf
+  ansible.builtin.lineinfile:
+    path: /etc/opensearch/opensearch.yml
+    search_string: 'node.name'
+    line: "node.name: {{ansible_hostname}}"
+    state: present
+  become: true
+
+- name: change network host in conf
+  ansible.builtin.lineinfile:
+    path: /etc/opensearch/opensearch.yml
+    search_string: 'network.host'
+    line: "network.host: 127.0.0.1"
+    state: present
+  become: true
+
+- name: change discovery type for single node
+  ansible.builtin.lineinfile:
+    path: /etc/opensearch/opensearch.yml
+    insertafter: 'discovery.seed_hosts'
+    line: "discovery.type: single-node"
+    firstmatch: yes
+    state: present
+  become: true
+
+- name: change do not auto create index
+  ansible.builtin.lineinfile:
+    path: /etc/opensearch/opensearch.yml
+    insertafter: 'action.destructive_requires_name'
+    line: "action.auto_create_index: false"
+    firstmatch: yes
+    state: present
+  become: true
+
+# - name: change do not use default security index
+#   ansible.builtin.lineinfile:
+#     path: /etc/opensearch/opensearch.yml
+#     search_string: 'allow_default_init_securityindex'
+#     line: "plugins.security.allow_default_init_securityindex: false"
+#     state: present
+#   become: true
+
+# - name: change do not use demo certs
+#   ansible.builtin.lineinfile:
+#     path: /etc/opensearch/opensearch.yml
+#     search_string: 'allow_unsafe_democertificates'
+#     line: "plugins.security.allow_unsafe_democertificates: false"
+#     state: present
+#   become: true
+
+# Assuming certbot is already installed, create opensearch certs
+- name: check if a cert already exists
+  ansible.builtin.stat:
+    path: /etc/letsencrypt/live/opensearch.kylegodinho.com/fullchain.pem
+  register: pem_exists
+  become: true
+
+- name: run certbot command for opensearch certs
+  ansible.builtin.expect:
+    command: certbot certonly --dns-cloudflare --dns-cloudflare-credentials /home/{{ansible_user_id}}/.secrets/certbot/cloudflare.ini --register-unsafely-without-email --dns-cloudflare-propagation-seconds 30 -d opensearch.kylegodinho.com
+    responses:
+      (?i)es: "Y"
+  become: true
+  when: not pem_exists.stat.exists
+
+# - name: link chain.pem to config folder
+#   ansible.builtin.file:
+#     src: /etc/letsencrypt/live/opensearch.kylegodinho.com/chain.pem
+#     dest: /etc/opensearch/chain.pem
+#     state: link
+#   become: true
+
+# - name: link cert.pem to config folder
+#   ansible.builtin.file:
+#     src: /etc/letsencrypt/live/opensearch.kylegodinho.com/cert.pem
+#     dest: /etc/opensearch/cert.pem
+#     state: link
+#   become: true
+
+# - name: link privkey.pem to config folder
+#   ansible.builtin.file:
+#     src: /etc/letsencrypt/live/opensearch.kylegodinho.com/privkey.pem
+#     dest: /etc/opensearch/privkey.pem
+#     state: link
+#   become: true
+
+- name: Copy chain.pem to config folder
+  ansible.builtin.copy:
+    src: /etc/letsencrypt/live/opensearch.kylegodinho.com/chain.pem
+    dest: /etc/opensearch/chain.pem
+    remote_src: yes
+  become: true
+
+- name: Copy cert.pem to config folder
+  ansible.builtin.copy:
+    src: /etc/letsencrypt/live/opensearch.kylegodinho.com/cert.pem
+    dest: /etc/opensearch/cert.pem
+    remote_src: yes
+  become: true
+
+- name: Copy privkey.pem to config folder
+  ansible.builtin.copy:
+    src: /etc/letsencrypt/live/opensearch.kylegodinho.com/privkey.pem
+    dest: /etc/opensearch/privkey.pem
+    remote_src: yes
+  become: true
+
+- name: change transport ca cert
+  ansible.builtin.lineinfile:
+    path: /etc/opensearch/opensearch.yml
+    search_string: 'ssl.transport.pemtrustedcas_filepath'
+    line: "plugins.security.ssl.transport.pemtrustedcas_filepath: chain.pem"
+    state: present
+  become: true
+
+- name: change http ca cert
+  ansible.builtin.lineinfile:
+    path: /etc/opensearch/opensearch.yml
+    search_string: 'ssl.http.pemtrustedcas_filepath'
+    line: "plugins.security.ssl.http.pemtrustedcas_filepath: chain.pem"
+    state: present
+  become: true
+
+- name: change ssl cert
+  ansible.builtin.lineinfile:
+    path: /etc/opensearch/opensearch.yml
+    search_string: 'ssl.transport.pemcert_filepath'
+    line: "plugins.security.ssl.transport.pemcert_filepath: cert.pem"
+    state: present
+  become: true
+
+- name: change http cert
+  ansible.builtin.lineinfile:
+    path: /etc/opensearch/opensearch.yml
+    search_string: 'ssl.http.pemcert_filepath'
+    line: "plugins.security.ssl.http.pemcert_filepath: cert.pem"
+    state: present
+  become: true
+
+- name: change ssl key
+  ansible.builtin.lineinfile:
+    path: /etc/opensearch/opensearch.yml
+    search_string: 'ssl.transport.pemkey_filepath'
+    line: "plugins.security.ssl.transport.pemkey_filepath: privkey.pem"
+    state: present
+  become: true
+
+- name: change http key
+  ansible.builtin.lineinfile:
+    path: /etc/opensearch/opensearch.yml
+    search_string: 'ssl.http.pemkey_filepath'
+    line: "plugins.security.ssl.http.pemkey_filepath: privkey.pem"
+    state: present
+  become: true
+
+- name: change admin_dn
+  ansible.builtin.lineinfile:
+    path: /etc/opensearch/opensearch.yml
+    search_string: 'CN=kirk'
+    line: "  - CN=kylegodinho,OU=client,O=client,L=test, C=de"
+    state: present
+  become: true
+
+# "-Xms{{(ansible_memory_mb.real.total // 1024) // 2}}g"
+# Just manually setting to 2g for now
+- name: change jvm heap size Xms
+  ansible.builtin.lineinfile:
+    path: /etc/opensearch/jvm.options
+    search_string: 'Xms1g'
+    line: "-Xms2g"
+    state: present
+  become: true
+
+- name: change jvm heap size Xmx
+  ansible.builtin.lineinfile:
+    path: /etc/opensearch/jvm.options
+    search_string: 'Xmx1g'
+    line: "-Xmx2g"
+    state: present
+  become: true
+
+- name: set kernel parameter per doc
+  ansible.posix.sysctl:
+    name: vm.max_map_count
+    value: '262144'
+    sysctl_set: true
+    state: present
+    reload: true
+  become: true
+
+- name: reload systemd start and enable opensearch
+  ansible.builtin.systemd:
+    name: opensearch
+    state: started
+    enabled: true
+    daemon_reload: true
+  become: true

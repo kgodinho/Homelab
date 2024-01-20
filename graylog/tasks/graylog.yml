@@ -1,0 +1,65 @@
+- name: Install graylog repo
+  ansible.builtin.apt:
+    deb: https://packages.graylog2.org/repo/packages/graylog-5.0-repository_latest.deb
+  become: true
+
+- name: update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: install graylog-server
+  ansible.builtin.package:
+    name:
+      - graylog-server 
+    state: present
+  become: true
+
+- name: copy over script to gen password_secret
+  ansible.builtin.copy:
+    src: gen_secret_pass.sh
+    dest: /home/{{ansible_user_id}}/gen_secret_pass.sh
+    mode: 0777
+
+- name: generate password_secret
+  ansible.builtin.script:
+    cmd: /home/{{ansible_user_id}}/gen_secret_pass.sh
+  register: password_secret
+
+- name: set config password_secret
+  ansible.builtin.lineinfile:
+    path: /etc/graylog/server/server.conf
+    search_string: 'password_secret ='
+    line: "password_secret = {{password_secret.stdout}}"
+    state: present
+  become: true
+
+- name: generate admin pass sha256
+  ansible.builtin.shell:
+    cmd: "echo -n {{lookup('community.general.bitwarden', 'GraylogAdminPassword', field='password')[0]}} | shasum -a 256 | cut -d' ' -f1"
+  register: admin_pass_sha256
+
+- name: set admin pass sha256
+  ansible.builtin.lineinfile:
+    path: /etc/graylog/server/server.conf
+    search_string: 'root_password_sha2 ='
+    line: "root_password_sha2 = {{admin_pass_sha256.stdout}}"
+    state: present
+  become: true
+
+- name: set bind address
+  ansible.builtin.lineinfile:
+    path: /etc/graylog/server/server.conf
+    search_string: 'http_bind_address = 127.0.0.1:9000'
+    line: "http_bind_address = 127.0.0.1:9000"
+    state: present
+  become: true
+
+- name: reload systemd start and enable graylog-server
+  ansible.builtin.systemd:
+    name: graylog-server
+    state: started
+    enabled: true
+    daemon_reload: true
+  become: true
