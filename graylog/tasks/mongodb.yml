@@ -1,0 +1,49 @@
+- name: copy systemd service file for disabling THP
+  ansible.builtin.copy:
+    src: disable-transparent-huge-pages.service
+    dest: /etc/systemd/system/disable-transparent-huge-pages.service
+  become: true
+
+- name: reload systemd start and enable disable THP service
+  ansible.builtin.systemd:
+    name: disable-transparent-huge-pages
+    state: started
+    enabled: true
+    daemon_reload: true
+  become: true
+
+- name: install curl gnupg
+  ansible.builtin.package:
+    name:
+      - curl
+      - gnupg
+    state: present
+  become: true
+
+- name: Add mongodb key
+  ansible.builtin.apt_key:
+    url: https://pgp.mongodb.com/server-6.0.asc
+    state: present
+  become: true
+
+- name: Add mongodb repository
+  ansible.builtin.apt_repository:
+    repo: deb https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse
+    state: present
+    filename: mongodb-org-6.0
+  become: true
+
+- name: install mongodb
+  ansible.builtin.package:
+    name:
+      - mongodb-org
+    state: present
+  become: true
+
+- name: reload systemd start and enable mongod
+  ansible.builtin.systemd:
+    name: mongod
+    state: started
+    enabled: true
+    daemon_reload: true
+  become: true

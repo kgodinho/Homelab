@@ -1,1 +1,2 @@
-- include_tasks: nginx.yml
+# - include_tasks: nginx.yml
+- include_tasks: mongodb.yml
