@@ -15,6 +15,7 @@
       - sysstat
       - qemu-guest-agent
       - pip
+      - rsyslog
     state: present
   become: true
 
