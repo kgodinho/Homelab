@@ -1,3 +1,9 @@
+- name: Install pexpect python package as become user
+  ansible.builtin.pip:
+    name: pexpect
+    state: present
+  become: true
+
 - name: install snap
   ansible.builtin.package:
     name:
@@ -64,7 +70,7 @@
 
 - name: run certbot command
   ansible.builtin.expect:
-    command: certbot certonly --dns-cloudflare --dns-cloudflare-credentials /home/{{ansible_user_id}}/.secrets/certbot/cloudflare.ini --dns-cloudflare-propagation-seconds 60 -d {{ansible_hostname}}.kylegodinho.com
+    command: certbot certonly --dns-cloudflare --dns-cloudflare-credentials /home/{{ansible_user_id}}/.secrets/certbot/cloudflare.ini --register-unsafely-without-email --dns-cloudflare-propagation-seconds 30 -d {{ansible_hostname}}.kylegodinho.com
     responses:
       (?i)cancel: "{{lookup('community.general.bitwarden', 'CloudflareAPI', field='username')[0]}}"
       (?i)es: "Y"
