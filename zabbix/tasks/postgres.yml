@@ -1,0 +1,30 @@
+- name: install postgres
+  ansible.builtin.package:
+    name:
+      - postgresql
+    state: present
+  become: true
+
+- name: install psycopg2 for ansible community postgres modules
+  ansible.builtin.pip:
+    name: psycopg2-binary
+
+- name: install acl to help with becoming postgres user
+  ansible.builtin.package:
+    name:
+      - acl
+    state: present
+  become: true
+
+- name: note
+  debug:
+    msg: need to figure out psycopg2 to use postgres modules. did rest of steps manually
+
+    #- name: Create a new database with name "netbox"
+    #community.postgresql.postgresql_db:
+    #name: netbox
+    #become: true
+    #become_user: postgres
+
+    #- name: x
+    #community.postgresql.postresql_user:

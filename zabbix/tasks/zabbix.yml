@@ -1,0 +1,117 @@
+- name: Install zabbix repo
+  ansible.builtin.apt:
+    deb: https://repo.zabbix.com/zabbix/6.4/ubuntu/pool/main/z/zabbix-release/zabbix-release_6.4-1+ubuntu22.04_all.deb
+  become: true
+
+- name: update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: install zabbix packages
+  ansible.builtin.package:
+    name:
+      - zabbix-server-pgsql
+      - zabbix-frontend-php
+      - php8.1-pgsql
+      - zabbix-nginx-conf
+      - zabbix-sql-scripts
+      - zabbix-agent2
+      - zabbix-agent2-plugin-*
+    state: present
+  become: true
+
+- name: set max log file size to 1g
+  ansible.builtin.lineinfile:
+    path: /etc/zabbix/zabbix_server.conf 
+    search_string: 'LogFileSize=0'
+    line: "LogFileSize=1024"
+    state: present
+  become: true
+
+- name: set DB password
+  ansible.builtin.lineinfile:
+    path: /etc/zabbix/zabbix_server.conf 
+    insertafter: '# DBPassword='
+    line: "DBPassword={{lookup('community.general.bitwarden', 'ZabbixDBPassword', field='password')[0]}}"
+    firstmatch: yes
+    state: present
+  become: true
+
+- name: note
+  debug:
+    msg: Manually performed "zcat /usr/share/zabbix-sql-scripts/postgresql/server.sql.gz | sudo -u zabbix psql zabbix"
+
+# assuming nginx already installed as a prior task
+- name: copy zabbix nginx config
+  ansible.builtin.copy:
+    src: zabbix_nginx_conf
+    dest: /etc/nginx/sites-available/{{ansible_hostname}}
+  become: true
+
+- name: change server name in conf
+  ansible.builtin.lineinfile:
+    path: /etc/nginx/sites-available/{{ansible_hostname}}
+    search_string: 'SERVER_FQDN'
+    line: "        server_name {{ansible_hostname}}.kylegodinho.com;"
+    state: present
+  become: true
+
+- name: set cert in conf
+  ansible.builtin.lineinfile:
+    path: /etc/nginx/sites-available/{{ansible_hostname}}
+    search_string: 'SERVER_CERT'
+    line: "        ssl_certificate /etc/letsencrypt/live/{{ansible_hostname}}.kylegodinho.com/fullchain.pem;"
+    state: present
+  become: true
+
+- name: set key in conf
+  ansible.builtin.lineinfile:
+    path: /etc/nginx/sites-available/{{ansible_hostname}}
+    search_string: 'SERVER_KEY'
+    line: "        ssl_certificate_key /etc/letsencrypt/live/{{ansible_hostname}}.kylegodinho.com/privkey.pem;"
+    state: present
+  become: true
+
+- name: remove default nginx site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  become: true
+
+- name: link site conf to enabled sites
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/{{ansible_hostname}}
+    dest: /etc/nginx/sites-enabled/{{ansible_hostname}}
+    state: link
+  become: true
+
+- name: reload systemd start and enable zabbix-server
+  ansible.builtin.systemd:
+    name: zabbix-server
+    state: restarted
+    enabled: true
+    daemon_reload: true
+  become: true
+
+- name: start and enable zabbix-agent2
+  ansible.builtin.systemd:
+    name: zabbix-agent2
+    state: restarted
+    enabled: true
+  become: true
+
+- name: start and enable php8.1-fpm
+  ansible.builtin.systemd:
+    name: php8.1-fpm
+    state: restarted
+    enabled: true
+  become: true
+
+- name: start and enable nginx
+  ansible.builtin.systemd:
+    name: nginx
+    state: restarted
+    enabled: true
+  become: true

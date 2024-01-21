@@ -1,0 +1,33 @@
+- name: Install zabbix repo
+  ansible.builtin.apt:
+    deb: https://repo.zabbix.com/zabbix/6.4/ubuntu/pool/main/z/zabbix-release/zabbix-release_6.4-1+ubuntu22.04_all.deb
+  become: true
+
+- name: update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: install zabbix-agent2
+  ansible.builtin.package:
+    name:
+      - zabbix-agent2
+      - zabbix-agent2-plugin-*
+    state: present
+  become: true
+
+- name: allow Zabbix server to connect
+  ansible.builtin.lineinfile:
+    path: /etc/zabbix/zabbix_agent2.conf
+    search_string: 'Server=127.0.0.1'
+    line: "Server=127.0.0.1,zabbix.kylegodinho.com"
+    state: present
+  become: true
+
+- name: start and enable zabbix-agent2
+  ansible.builtin.systemd:
+    name: zabbix-agent2
+    state: restarted
+    enabled: true
+  become: true

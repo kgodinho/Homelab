@@ -6,16 +6,17 @@
   roles:
     - essentials
     # - certbot
-    - netbox
+    # - netbox
 
 - hosts: graylog
   roles:
     - essentials
     # - certbot
-    - graylog
+    # - graylog
 
 - hosts: zabbix
   roles:
     - essentials
     # - certbot
     # - nginx
+    # - zabbix

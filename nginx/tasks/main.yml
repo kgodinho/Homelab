@@ -22,8 +22,6 @@
     state: present
   become: true
 
-# set up cert/key in /etc/nginx/sites-available/netbox
-
 - name: set cert in conf
   ansible.builtin.lineinfile:
     path: /etc/nginx/sites-available/{{ansible_hostname}}
