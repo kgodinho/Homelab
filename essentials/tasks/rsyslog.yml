@@ -1,0 +1,7 @@
+- name: copy rsyslog config to send all to graylog
+  ansible.builtin.copy:
+    src: graylog.conf
+    dest: /etc/rsyslog.d/graylog.conf
+  become: true
+  notify:
+    - restart rsyslog

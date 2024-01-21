@@ -13,3 +13,9 @@
     - essentials
     # - certbot
     - graylog
+
+- hosts: zabbix
+  roles:
+    - essentials
+    # - certbot
+    # - nginx
