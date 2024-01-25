@@ -1,4 +1,4 @@
 # - include_tasks: nginx.yml
 # - include_tasks: mongodb.yml
-# - include_tasks: opensearch.yml
-- include_tasks: graylog.yml
+- include_tasks: opensearch.yml
+# - include_tasks: graylog.yml

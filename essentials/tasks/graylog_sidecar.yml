@@ -1,0 +1,69 @@
+- name: Install graylog-sidecar repo
+  ansible.builtin.apt:
+    deb: https://packages.graylog2.org/repo/packages/graylog-sidecar-repository_1-5_all.deb
+  become: true
+
+- name: update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: install graylog-sidecar
+  ansible.builtin.package:
+    name:
+      - graylog-sidecar
+    state: present
+  become: true
+
+- name: set server address
+  ansible.builtin.lineinfile:
+    path: /etc/graylog/sidecar/sidecar.yml
+    search_string: '#server_url'
+    line: 'server_url: "https://graylog.kylegodinho.com/api/"'
+    state: present
+  become: true
+
+- name: set api token
+  ansible.builtin.lineinfile:
+    path: /etc/graylog/sidecar/sidecar.yml
+    search_string: 'server_api_token'
+    line: "server_api_token: \"{{lookup('community.general.bitwarden', 'GraylogSidecar', field='apiToken')[0]}}\""
+    state: present
+  become: true
+
+- name: collector_binaries
+  ansible.builtin.lineinfile:
+    path: /etc/graylog/sidecar/sidecar.yml
+    search_string: '# collector_binaries'
+    line: "collector_binaries_accesslist:"
+    state: present
+  become: true
+
+- name: filebeat
+  ansible.builtin.lineinfile:
+    path: /etc/graylog/sidecar/sidecar.yml
+    search_string: '#  - "/usr/share/filebeat/bin/filebeat"'
+    line: '  - "/usr/share/filebeat/bin/filebeat"'
+    state: present
+  become: true
+
+- name: check if service file already exists
+  ansible.builtin.stat:
+    path: /etc/systemd/system/graylog-sidecar.service
+  register: service_file
+  become: true
+
+- name: install the graylog-sidecar service
+  ansible.builtin.command:
+    cmd: graylog-sidecar -service install
+  become: true
+  when: not service_file.stat.exists
+
+- name: reload systemd start and enable graylog-sidecar
+  ansible.builtin.systemd:
+    name: graylog-sidecar
+    state: started
+    enabled: true
+    daemon_reload: true
+  become: true

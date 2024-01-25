@@ -9,10 +9,11 @@
   become: true
   when: ansible_facts['os_family'] == "Debian"
 
-- name: install graylog-server
+# Free license if <2gb a day
+- name: install graylog-enterprise
   ansible.builtin.package:
     name:
-      - graylog-server 
+      - graylog-enterprise 
     state: present
   become: true
 

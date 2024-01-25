@@ -91,47 +91,47 @@
   become: true
   when: not pem_exists.stat.exists
 
-# - name: link chain.pem to config folder
-#   ansible.builtin.file:
-#     src: /etc/letsencrypt/live/opensearch.kylegodinho.com/chain.pem
-#     dest: /etc/opensearch/chain.pem
-#     state: link
-#   become: true
-
-# - name: link cert.pem to config folder
-#   ansible.builtin.file:
-#     src: /etc/letsencrypt/live/opensearch.kylegodinho.com/cert.pem
-#     dest: /etc/opensearch/cert.pem
-#     state: link
-#   become: true
-
-# - name: link privkey.pem to config folder
-#   ansible.builtin.file:
-#     src: /etc/letsencrypt/live/opensearch.kylegodinho.com/privkey.pem
-#     dest: /etc/opensearch/privkey.pem
-#     state: link
-#   become: true
-
-- name: Copy chain.pem to config folder
-  ansible.builtin.copy:
+- name: link chain.pem to config folder
+  ansible.builtin.file:
     src: /etc/letsencrypt/live/opensearch.kylegodinho.com/chain.pem
     dest: /etc/opensearch/chain.pem
-    remote_src: yes
+    state: link
   become: true
 
-- name: Copy cert.pem to config folder
-  ansible.builtin.copy:
+- name: link cert.pem to config folder
+  ansible.builtin.file:
     src: /etc/letsencrypt/live/opensearch.kylegodinho.com/cert.pem
     dest: /etc/opensearch/cert.pem
-    remote_src: yes
+    state: link
   become: true
 
-- name: Copy privkey.pem to config folder
-  ansible.builtin.copy:
+- name: link privkey.pem to config folder
+  ansible.builtin.file:
     src: /etc/letsencrypt/live/opensearch.kylegodinho.com/privkey.pem
     dest: /etc/opensearch/privkey.pem
-    remote_src: yes
+    state: link
   become: true
+
+# - name: Copy chain.pem to config folder
+#   ansible.builtin.copy:
+#     src: /etc/letsencrypt/live/opensearch.kylegodinho.com/chain.pem
+#     dest: /etc/opensearch/chain.pem
+#     remote_src: yes
+#   become: true
+
+# - name: Copy cert.pem to config folder
+#   ansible.builtin.copy:
+#     src: /etc/letsencrypt/live/opensearch.kylegodinho.com/cert.pem
+#     dest: /etc/opensearch/cert.pem
+#     remote_src: yes
+#   become: true
+
+# - name: Copy privkey.pem to config folder
+#   ansible.builtin.copy:
+#     src: /etc/letsencrypt/live/opensearch.kylegodinho.com/privkey.pem
+#     dest: /etc/opensearch/privkey.pem
+#     remote_src: yes
+#   become: true
 
 - name: change transport ca cert
   ansible.builtin.lineinfile:
@@ -219,7 +219,7 @@
 - name: reload systemd start and enable opensearch
   ansible.builtin.systemd:
     name: opensearch
-    state: started
+    state: restarted
     enabled: true
     daemon_reload: true
   become: true

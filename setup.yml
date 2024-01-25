@@ -20,3 +20,7 @@
     # - certbot
     # - nginx
     # - zabbix
+
+- hosts: pihole
+  roles:
+    - essentials
