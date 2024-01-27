@@ -21,6 +21,6 @@
     # - nginx
     # - zabbix
 
-- hosts: pihole
+- hosts: wireguard
   roles:
     - essentials

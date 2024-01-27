@@ -32,6 +32,16 @@
     state: present
   become: true
 
+- name: Add sidecar tags for config control
+  ansible.builtin.blockinfile:
+    path: /etc/graylog/sidecar/sidecar.yml
+    marker: "# {mark} ANSIBLE MANAGED BLOCK {{item}}"
+    insertafter: "  - default"
+    block: |2
+        - {{ item }}
+  with_items: "{{ sidecar_tags }}"
+  become: true
+
 - name: collector_binaries
   ansible.builtin.lineinfile:
     path: /etc/graylog/sidecar/sidecar.yml
@@ -60,10 +70,10 @@
   become: true
   when: not service_file.stat.exists
 
-- name: reload systemd start and enable graylog-sidecar
+- name: reload systemd restart and enable graylog-sidecar
   ansible.builtin.systemd:
     name: graylog-sidecar
-    state: started
+    state: restarted
     enabled: true
     daemon_reload: true
   become: true
