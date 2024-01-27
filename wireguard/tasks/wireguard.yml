@@ -1,0 +1,8 @@
+- name: install wireguard
+  ansible.builtin.package:
+    name:
+      - wireguard
+    state: present
+  become: true
+
+# Considering value of this through ansible. on hold for now
