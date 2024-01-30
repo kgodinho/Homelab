@@ -1,0 +1,23 @@
+- name: allow https traffic
+  ansible.posix.firewalld:
+    service: https
+    permanent: true
+    state: enabled
+    immediate: true
+  become: true
+
+- name: allow udp syslog
+  ansible.posix.firewalld:
+    port: 514/udp
+    permanent: true
+    state: enabled
+    immediate: true
+  become: true
+
+- name: allow beats traffic
+  ansible.posix.firewalld:
+    port: 5044/tcp
+    permanent: true
+    state: enabled
+    immediate: true
+  become: true

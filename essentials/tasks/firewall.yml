@@ -1,0 +1,14 @@
+- name: install firewalld
+  ansible.builtin.package:
+    name:
+      - firewalld
+    state: present
+  become: true
+
+- name: allow passive zabbix traffic
+  ansible.posix.firewalld:
+    port: 10050/tcp
+    permanent: true
+    state: enabled
+    immediate: true
+  become: true

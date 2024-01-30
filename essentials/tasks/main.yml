@@ -2,3 +2,4 @@
 - include_tasks: zabbix.yml
 - include_tasks: filebeat.yml
 - include_tasks: graylog_sidecar.yml
+- include_tasks: firewall.yml

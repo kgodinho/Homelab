@@ -1,0 +1,7 @@
+- name: allow https traffic
+  ansible.posix.firewalld:
+    service: https
+    permanent: true
+    state: enabled
+    immediate: true
+  become: true

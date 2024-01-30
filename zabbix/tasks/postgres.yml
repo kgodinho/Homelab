@@ -20,7 +20,7 @@
   debug:
     msg: need to figure out psycopg2 to use postgres modules. did rest of steps manually
 
-    #- name: Create a new database with name "netbox"
+    #- name: Create a new database
     #community.postgresql.postgresql_db:
     #name: netbox
     #become: true
