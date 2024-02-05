@@ -59,6 +59,18 @@
     state: link
   become: true
 
+- name: Add script to restart nginx by certbot after cert renewal
+  ansible.builtin.copy:
+    src: restart_nginx.sh
+    dest: /etc/letsencrypt/renewal-hooks/post/restart_nginx.sh
+  become: true
+
+- name: ensure restart script is executable
+  ansible.builtin.file:
+    path: /etc/letsencrypt/renewal-hooks/post/restart_nginx.sh
+    mode: '0755'
+  become: true
+
 - name: restart nginx
   ansible.builtin.systemd:
     name: nginx

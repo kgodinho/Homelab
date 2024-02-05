@@ -4,24 +4,30 @@
 
 - hosts: netbox
   roles:
-    - essentials
+    # - essentials
     # - certbot
     # - netbox
+    - nginx
 
 - hosts: graylog
   roles:
-    - essentials
+    # - essentials
     # - certbot
     # - graylog
+    - nginx
 
 - hosts: zabbix
   roles:
-    - essentials
+    # - essentials
     # - certbot
-    # - nginx
+    - nginx
     # - zabbix
 
 - hosts: wireguard
   roles:
     - essentials
     # - wireguard
+
+- hosts: wireServer
+  roles:
+    - essentials
