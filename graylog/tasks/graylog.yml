@@ -10,10 +10,11 @@
   when: ansible_facts['os_family'] == "Debian"
 
 # Free license if <2gb a day
-- name: install graylog-enterprise
+- name: install graylog-enterprise and authbind
   ansible.builtin.package:
     name:
-      - graylog-enterprise 
+      - graylog-enterprise
+      - authbind
     state: present
   become: true
 

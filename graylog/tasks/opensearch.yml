@@ -11,10 +11,11 @@
     filename: opensearch-2.x
   become: true
 
-- name: install opensearch
+- name: install opensearch and java (for supporting scripts)
   ansible.builtin.package:
     name:
       - opensearch
+      - default-jre
     state: present
   become: true
 
