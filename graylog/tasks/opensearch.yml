@@ -69,13 +69,33 @@
 #     state: present
 #   become: true
 
-# - name: change do not use demo certs
-#   ansible.builtin.lineinfile:
-#     path: /etc/opensearch/opensearch.yml
-#     search_string: 'allow_unsafe_democertificates'
-#     line: "plugins.security.allow_unsafe_democertificates: false"
-#     state: present
-#   become: true
+- name: change do not use demo certs
+  ansible.builtin.lineinfile:
+    path: /etc/opensearch/opensearch.yml
+    search_string: 'allow_unsafe_democertificates'
+    line: "plugins.security.allow_unsafe_democertificates: false"
+    state: present
+  become: true
+
+- name: change audit type
+  ansible.builtin.lineinfile:
+    path: /etc/opensearch/opensearch.yml
+    search_string: 'security.audit.type'
+    line: "#plugins.security.audit.type: internal_opensearch"
+    state: present
+  become: true
+
+- name: remove demo certs
+  ansible.builtin.file:
+    path: '/etc/opensearch/{{item}}'
+    state: absent
+  become: true
+  loop:
+    - root-ca.pem
+    - esnode.pem
+    - esnode-key.pem
+    - kirk.pem
+    - kirk-key.pem
 
 # Assuming certbot is already installed, create opensearch certs
 - name: check if a cert already exists
@@ -85,54 +105,49 @@
   become: true
 
 - name: run certbot command for opensearch certs
-  ansible.builtin.expect:
-    command: certbot certonly --dns-cloudflare --dns-cloudflare-credentials /home/{{ansible_user_id}}/.secrets/certbot/cloudflare.ini --register-unsafely-without-email --dns-cloudflare-propagation-seconds 30 -d opensearch.kylegodinho.com
-    responses:
-      (?i)es: "Y"
+  ansible.builtin.command:
+    cmd: certbot certonly --dns-cloudflare --dns-cloudflare-credentials /home/{{ansible_user_id}}/.secrets/certbot/cloudflare.ini --non-interactive --agree-tos -m certbot@kylegodinho.com --dns-cloudflare-propagation-seconds 60 -d opensearch.kylegodinho.com
   become: true
   when: not pem_exists.stat.exists
 
-- name: link chain.pem to config folder
+- name: copy over script for setting up opensearch certs after renewal
+  ansible.builtin.copy:
+    src: opensearch_certs.sh
+    dest: /etc/letsencrypt/renewal-hooks/post/opensearch_certs.sh
+  become: true
+
+- name: ensure script is executable
   ansible.builtin.file:
+    path: /etc/letsencrypt/renewal-hooks/post/opensearch_certs.sh
+    mode: '0755'
+  become: true
+
+- name: run cmd to convert privkey
+  ansible.builtin.command:
+    chdir: /etc/letsencrypt/live/opensearch.kylegodinho.com
+    cmd: openssl pkcs8 -topk8 -nocrypt -in privkey.pem -out privkey-pkcs8.pem
+  become: true
+
+- name: Copy chain.pem to config folder
+  ansible.builtin.copy:
     src: /etc/letsencrypt/live/opensearch.kylegodinho.com/chain.pem
     dest: /etc/opensearch/chain.pem
-    state: link
+    remote_src: yes
   become: true
 
-- name: link cert.pem to config folder
-  ansible.builtin.file:
-    src: /etc/letsencrypt/live/opensearch.kylegodinho.com/cert.pem
-    dest: /etc/opensearch/cert.pem
-    state: link
+- name: Copy fullchain.pem to config folder
+  ansible.builtin.copy:
+    src: /etc/letsencrypt/live/opensearch.kylegodinho.com/fullchain.pem
+    dest: /etc/opensearch/fullchain.pem
+    remote_src: yes
   become: true
 
-- name: link privkey.pem to config folder
-  ansible.builtin.file:
-    src: /etc/letsencrypt/live/opensearch.kylegodinho.com/privkey.pem
-    dest: /etc/opensearch/privkey.pem
-    state: link
+- name: Copy privkey-pkcs8.pem to config folder
+  ansible.builtin.copy:
+    src: /etc/letsencrypt/live/opensearch.kylegodinho.com/privkey-pkcs8.pem
+    dest: /etc/opensearch/privkey-pkcs8.pem
+    remote_src: yes
   become: true
-
-# - name: Copy chain.pem to config folder
-#   ansible.builtin.copy:
-#     src: /etc/letsencrypt/live/opensearch.kylegodinho.com/chain.pem
-#     dest: /etc/opensearch/chain.pem
-#     remote_src: yes
-#   become: true
-
-# - name: Copy cert.pem to config folder
-#   ansible.builtin.copy:
-#     src: /etc/letsencrypt/live/opensearch.kylegodinho.com/cert.pem
-#     dest: /etc/opensearch/cert.pem
-#     remote_src: yes
-#   become: true
-
-# - name: Copy privkey.pem to config folder
-#   ansible.builtin.copy:
-#     src: /etc/letsencrypt/live/opensearch.kylegodinho.com/privkey.pem
-#     dest: /etc/opensearch/privkey.pem
-#     remote_src: yes
-#   become: true
 
 - name: change transport ca cert
   ansible.builtin.lineinfile:
@@ -154,7 +169,7 @@
   ansible.builtin.lineinfile:
     path: /etc/opensearch/opensearch.yml
     search_string: 'ssl.transport.pemcert_filepath'
-    line: "plugins.security.ssl.transport.pemcert_filepath: cert.pem"
+    line: "plugins.security.ssl.transport.pemcert_filepath: fullchain.pem"
     state: present
   become: true
 
@@ -162,7 +177,7 @@
   ansible.builtin.lineinfile:
     path: /etc/opensearch/opensearch.yml
     search_string: 'ssl.http.pemcert_filepath'
-    line: "plugins.security.ssl.http.pemcert_filepath: cert.pem"
+    line: "plugins.security.ssl.http.pemcert_filepath: fullchain.pem"
     state: present
   become: true
 
@@ -170,7 +185,7 @@
   ansible.builtin.lineinfile:
     path: /etc/opensearch/opensearch.yml
     search_string: 'ssl.transport.pemkey_filepath'
-    line: "plugins.security.ssl.transport.pemkey_filepath: privkey.pem"
+    line: "plugins.security.ssl.transport.pemkey_filepath: privkey-pkcs8.pem"
     state: present
   become: true
 
@@ -178,7 +193,7 @@
   ansible.builtin.lineinfile:
     path: /etc/opensearch/opensearch.yml
     search_string: 'ssl.http.pemkey_filepath'
-    line: "plugins.security.ssl.http.pemkey_filepath: privkey.pem"
+    line: "plugins.security.ssl.http.pemkey_filepath: privkey-pkcs8.pem"
     state: present
   become: true
 
@@ -186,7 +201,7 @@
   ansible.builtin.lineinfile:
     path: /etc/opensearch/opensearch.yml
     search_string: 'CN=kirk'
-    line: "  - CN=kylegodinho,OU=client,O=client,L=test, C=de"
+    line: "  - CN=opensearch.kylegodinho.com"
     state: present
   become: true
 
@@ -223,4 +238,34 @@
     state: restarted
     enabled: true
     daemon_reload: true
+  become: true
+
+- name: backup current security conf
+  ansible.builtin.command:
+    cmd: /usr/share/opensearch/plugins/opensearch-security/tools/securityadmin.sh -backup ~/openbackup -icl -nhnv -cacert /etc/opensearch/chain.pem -cert /etc/opensearch/fullchain.pem -key /etc/opensearch/privkey-pkcs8.pem
+  become: true
+
+- name: copy over internal_users.yml
+  ansible.builtin.copy:
+    src: internal_users.yml
+    dest: /etc/opensearch/opensearch-security/internal_users.yml
+  become: true
+
+- name: change admin pass
+  ansible.builtin.lineinfile:
+    path: /etc/opensearch/opensearch-security/internal_users.yml
+    search_string: 'ADMIN_PASS_HASH'
+    line: "  hash: \"{{lookup('community.general.bitwarden', 'OpensearchAdmin', field='hash')[0]}}\""
+    state: present
+  become: true
+
+- name: apply new internal users
+  ansible.builtin.command:
+    cmd: /usr/share/opensearch/plugins/opensearch-security/tools/securityadmin.sh -icl -nhnv -cacert /etc/opensearch/chain.pem -cert /etc/opensearch/fullchain.pem -key /etc/opensearch/privkey-pkcs8.pem -f /etc/opensearch/opensearch-security/internal_users.yml -t internalusers
+  become: true
+
+- name: restart opensearch
+  ansible.builtin.systemd:
+    name: opensearch
+    state: restarted
   become: true

@@ -18,6 +18,45 @@
     state: present
   become: true
 
+- name: ensure graylog starts using authbind
+  ansible.builtin.lineinfile:
+    path: /etc/default/graylog-server
+    search_string: 'GRAYLOG_COMMAND_WRAPPER'
+    line: "GRAYLOG_COMMAND_WRAPPER=\"authbind\""
+    state: present
+  become: true
+
+- name: add authbind ports for graylog
+  ansible.builtin.file:
+    path: '/etc/authbind/byport/{{item}}'
+    state: touch
+    mode: '0755'
+    owner: graylog
+    group: graylog
+  become: true
+  loop:
+    - 514
+    - \!514
+    - \!12201
+
+- name: copy over script for setting up graylog privkey after renewal
+  ansible.builtin.copy:
+    src: graylog_certs.sh
+    dest: /etc/letsencrypt/renewal-hooks/post/graylog_certs.sh
+  become: true
+
+- name: ensure script is executable
+  ansible.builtin.file:
+    path: /etc/letsencrypt/renewal-hooks/post/graylog_certs.sh
+    mode: '0755'
+  become: true
+
+- name: run cmd to convert privkey
+  ansible.builtin.command:
+    chdir: /etc/letsencrypt/live/graylog.kylegodinho.com
+    cmd: openssl pkcs8 -topk8 -nocrypt -in privkey.pem -out privkey-pkcs8.pem
+  become: true
+
 - name: copy over script to gen password_secret
   ansible.builtin.copy:
     src: gen_secret_pass.sh
@@ -56,6 +95,77 @@
     search_string: 'http_bind_address = 127.0.0.1:9000'
     line: "http_bind_address = 127.0.0.1:9000"
     state: present
+  become: true
+
+- name: set publish uri
+  ansible.builtin.lineinfile:
+    path: /etc/graylog/server/server.conf
+    search_string: 'http_publish_uri'
+    line: "http_publish_uri = https://graylog.kylegodinho.com/"
+    state: present
+  become: true
+
+- name: ensure nginx conf passing to https
+  ansible.builtin.lineinfile:
+    path: /etc/nginx/sites-available/{{ansible_hostname}}
+    search_string: 'proxy_pass'
+    line: "        proxy_pass https://127.0.0.1:9000;"
+    state: present
+  become: true
+
+- name: set https enabled
+  ansible.builtin.lineinfile:
+    path: /etc/graylog/server/server.conf
+    search_string: 'http_enable_tls'
+    line: "http_enable_tls = true"
+    state: present
+  become: true
+
+- name: set https cert
+  ansible.builtin.lineinfile:
+    path: /etc/graylog/server/server.conf
+    search_string: 'http_tls_cert_file'
+    line: "http_tls_cert_file = /etc/letsencrypt/live/graylog.kylegodinho.com/fullchain.pem"
+    state: present
+  become: true
+
+- name: set https key
+  ansible.builtin.lineinfile:
+    path: /etc/graylog/server/server.conf
+    search_string: 'http_tls_key_file'
+    line: "http_tls_key_file = /etc/letsencrypt/live/graylog.kylegodinho.com/privkey-pkcs8.pem"
+    state: present
+  become: true
+
+- name: set trusted proxies
+  ansible.builtin.lineinfile:
+    path: /etc/graylog/server/server.conf
+    search_string: 'trusted_proxies'
+    line: "trusted_proxies = 127.0.0.1/32, 0:0:0:0:0:0:0:1/128"
+    state: present
+  become: true
+
+- name: set opensearch host
+  ansible.builtin.lineinfile:
+    path: /etc/graylog/server/server.conf
+    search_string: 'elasticsearch_hosts'
+    line: "elasticsearch_hosts = https://admin:{{lookup('community.general.bitwarden', 'OpensearchAdmin', field='password')[0]}}@opensearch.kylegodinho.com:9200"
+    state: present
+  become: true
+
+- name: add opensearch.kylegodinho.com to hosts file
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    insertafter: "127.0.0.1 localhost"
+    line: "127.0.0.1 opensearch.kylegodinho.com"
+    state: present
+  become: true
+
+- name: restart nginx
+  ansible.builtin.systemd:
+    name: nginx
+    state: restarted
+    enabled: true
   become: true
 
 - name: reload systemd start and enable graylog-server
