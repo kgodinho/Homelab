@@ -1,12 +1,6 @@
 # Certificate is saved at: /etc/letsencrypt/live/HOSTNAME.kylegodinho.com/fullchain.pem
 # Key is saved at:         /etc/letsencrypt/live/HOSTNAME.kylegodinho.com/privkey.pem
 
-- name: Install pexpect python package as become user for use when running certbot
-  ansible.builtin.pip:
-    name: pexpect
-    state: present
-  become: true
-
 - name: install snap
   ansible.builtin.package:
     name:
@@ -70,14 +64,6 @@
     path: /etc/letsencrypt/live/{{ansible_hostname}}.kylegodinho.com/fullchain.pem
   register: pem_exists
   become: true
-
-# - name: run certbot command
-#   ansible.builtin.expect:
-#     command: certbot certonly --dns-cloudflare --dns-cloudflare-credentials /home/{{ansible_user_id}}/.secrets/certbot/cloudflare.ini --register-unsafely-without-email --dns-cloudflare-propagation-seconds 60 -d {{ansible_hostname}}.kylegodinho.com
-#     responses:
-#       (?i)es: "Y"
-#   become: true
-#   when: not pem_exists.stat.exists
 
 - name: run certbot command
   ansible.builtin.command:

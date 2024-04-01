@@ -31,3 +31,7 @@
 - hosts: wireServer
   roles:
     - essentials
+
+- hosts: nextcloud
+  roles:
+    - certbot
