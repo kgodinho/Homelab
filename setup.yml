@@ -1,4 +1,4 @@
-- hosts: main
+- hosts: alma
   roles:
     - essentials
 

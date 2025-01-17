@@ -56,7 +56,7 @@
 
 - name: ensure good perms on cloudfare.ini
   ansible.builtin.file:
-    path: //home/{{ansible_user_id}}/.secrets/certbot/cloudflare.ini
+    path: /home/{{ansible_user_id}}/.secrets/certbot/cloudflare.ini
     mode: '600'
 
 - name: check if a cert already exists
