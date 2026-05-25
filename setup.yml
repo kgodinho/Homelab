@@ -1,27 +1,30 @@
-- hosts: all
-  roles:
-    - essentials
-
-- hosts: wazuh
-  roles:
-    - certbot
-
-# - hosts: netbox
+# - hosts: all
 #   roles:
 #     - essentials
+
+# - hosts: wazuh
+#   roles:
+#     - certbot
+
+- hosts: netbox
+  roles:
+    # - essentials
+    - wazuh_agent
 #     - certbot
 #     - netbox
 #     - nginx
 
-# - hosts: zabbix
-#   roles:
-#     # - essentials
-#     # - certbot
-#     - nginx
-#     # - zabbix
+- hosts: zabbix
+  roles:
+    - wazuh_agent
+    # - essentials
+    # - certbot
+    # - nginx
+    # - zabbix
 
-# - hosts: wireguard
-#   roles:
+- hosts: wireguard
+  roles:
+    - wazuh_agent
 #     - essentials
 #     # - wireguard
 

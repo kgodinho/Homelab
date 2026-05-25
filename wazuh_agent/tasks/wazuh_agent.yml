@@ -1,0 +1,76 @@
+- name: install dependencies
+  ansible.builtin.package:
+    name:
+      - gnupg
+      - apt-transport-https
+    state: present
+  become: true
+
+- name: Add wazuh agent repo GPG key
+  ansible.builtin.apt_key:
+    url: https://packages.wazuh.com/key/GPG-KEY-WAZUH
+    state: present
+  become: true
+
+- name: Add wazuh repository
+  ansible.builtin.apt_repository:
+    repo: deb https://packages.wazuh.com/4.x/apt stable main
+    state: present
+    filename: wazuh.list
+  become: true
+
+- name: update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: install wazuh-agent
+  ansible.builtin.package:
+    name:
+      - wazuh-agent
+    state: present
+  become: true
+
+- name: Hold wazuh-agent package
+  ansible.builtin.dpkg_selections:
+    name: wazuh-agent
+    selection: hold
+  become: true
+
+- name: create agent enrollment password file
+  ansible.builtin.lineinfile:
+    path: /var/ossec/etc/authd.pass
+    line: "{{lookup('community.general.bitwarden', 'WazuhAgent', field='enrollmentPassword')[0]}}"
+    create: true
+  become: true
+
+- name: ensure good perms on agent enrollment password file
+  ansible.builtin.file:
+    path: /var/ossec/etc/authd.pass
+    mode: '640'
+    owner: root
+    group: wazuh
+  become: true
+
+# for if needed
+# - name: Unhold wazuh-agent package
+#   ansible.builtin.dpkg_selections:
+#     name: wazuh-agent
+#     selection: install
+
+- name: set server address
+  ansible.builtin.lineinfile:
+    path: /var/ossec/etc/ossec.conf
+    search_string: 'MANAGER_IP'
+    line: '      <address>wazuh.kylegodinho.com</address>'
+    state: present
+  become: true
+
+- name: reload systemd start and enable wazuh-agent
+  ansible.builtin.systemd:
+    name: wazuh-agent
+    state: started
+    enabled: true
+    daemon_reload: true
+  become: true
