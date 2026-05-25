@@ -1,0 +1,27 @@
+- name: update apt cache if debian
+  ansible.builtin.apt:
+    update_cache: yes
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: install fail2ban
+  ansible.builtin.package:
+    name:
+      - fail2ban
+    state: present
+
+- name: ensure fail2ban service started and enabled
+  ansible.builtin.systemd:
+    name: fail2ban
+    state: started
+    enabled: true
+
+- name: copy fail2ban conf
+  ansible.builtin.copy:
+    src: files/jail.local
+    dest: /etc/fail2ban/jail.local
+    owner: root
+    group: root
+    mode: '644'
+    backup: yes
+  notify:
+    - restart fail2ban

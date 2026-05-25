@@ -1,0 +1,9 @@
+[DEFAULT]
+bantime = -1
+findtime = 600
+maxretry = 3
+ignoreip = 127.0.0.1/8 172.21.0.0/16 172.22.0.0/16 172.23.0.0/16 172.24.0.0/16 172.25.0.0/16
+
+[sshd]
+enabled = true
+port = 22499
