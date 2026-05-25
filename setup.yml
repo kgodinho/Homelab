@@ -1,37 +1,35 @@
-- hosts: alma
+- hosts: all
   roles:
     - essentials
 
-- hosts: netbox
-  roles:
-    # - essentials
-    # - certbot
-    # - netbox
-    - nginx
-
-- hosts: graylog
-  roles:
-    # - essentials
-    # - certbot
-    # - graylog
-    - nginx
-
-- hosts: zabbix
-  roles:
-    # - essentials
-    # - certbot
-    - nginx
-    # - zabbix
-
-- hosts: wireguard
-  roles:
-    - essentials
-    # - wireguard
-
-- hosts: wireServer
-  roles:
-    - essentials
-
-- hosts: nextcloud
+- hosts: wazuh
   roles:
     - certbot
+
+# - hosts: netbox
+#   roles:
+#     - essentials
+#     - certbot
+#     - netbox
+#     - nginx
+
+# - hosts: zabbix
+#   roles:
+#     # - essentials
+#     # - certbot
+#     - nginx
+#     # - zabbix
+
+# - hosts: wireguard
+#   roles:
+#     - essentials
+#     # - wireguard
+
+# - hosts: wireServer
+#   roles:
+#     - essentials
+
+# - hosts: nextcloud
+#   roles:
+#     - certbot
+
